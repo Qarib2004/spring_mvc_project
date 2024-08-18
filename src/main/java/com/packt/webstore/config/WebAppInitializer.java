@@ -1,4 +1,4 @@
-package com.packt.webstore;
+package com.packt.webstore.config;
 
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
@@ -12,19 +12,39 @@ import javax.servlet.ServletRegistration;
 public class WebAppInitializer implements WebApplicationInitializer {
     @Override
     public void onStartup(ServletContext servletContext) throws ServletException {
-        // Создание контекста Spring
-        AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
-        context.setConfigLocation("com.packt.webstore.config"); // Укажите пакет, где находятся ваши конфигурационные классы
 
-        // Регистрируем DispatcherServlet
-        ServletRegistration.Dynamic dispatcher = servletContext.addServlet("DefaultServlet-servlet.xml", new DispatcherServlet(context));
+        AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+        context.register(WebConfig.class);
+
+
+        ServletRegistration.Dynamic dispatcher = servletContext.addServlet("dispatcher", new DispatcherServlet(context));
         dispatcher.setLoadOnStartup(1);
         dispatcher.addMapping("/");
 
-        // Регистрируем фильтр Spring Security
-        FilterRegistration.Dynamic securityFilter = servletContext.addFilter("springSecurityFilterChain", new DelegatingFilterProxy());
+
+        FilterRegistration.Dynamic securityFilter = servletContext.addFilter("springSecurityFilterChain", new DelegatingFilterProxy("springSecurityFilterChain"));
         securityFilter.addMappingForUrlPatterns(null, false, "/*");
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //    @Override
 //    public void onStartup(ServletContext servletContext) throws ServletException {
@@ -41,5 +61,5 @@ public class WebAppInitializer implements WebApplicationInitializer {
 //        FilterRegistration.Dynamic securityFilter = servletContext.addFilter("springSecurityFilterChain", new DelegatingFilterProxy("springSecurityFilterChain"));
 //        securityFilter.addMappingForUrlPatterns(null, false, "/*");
 //    }
-}
+
 
