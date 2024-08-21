@@ -47,6 +47,26 @@ import com.packt.webstore.domain.Product;
             }
 
         @Override
+        public void deleteById(String productId) {
+            Product productToDelete = null;
+
+            // Ищем продукт по ID
+            for (Product product : listOfProducts) {
+                if (product.getProductId().equals(productId)) {
+                    productToDelete = product;
+                    break;
+                }
+            }
+
+            // Если продукт найден, удаляем его из списка
+            if (productToDelete != null) {
+                listOfProducts.remove(productToDelete);
+            } else {
+                throw new ProductNotFoundException("No products found with the product id: " + productId);
+            }
+        }
+
+        @Override
         public Set<Product> getProductsByFilter(Map<String, List<String>> filterParams) {
             Set<Product> productsByBrand = new HashSet<Product>();
             Set<Product> productsByCategory = new HashSet<Product>();

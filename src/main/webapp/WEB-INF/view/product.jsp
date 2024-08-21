@@ -1,20 +1,17 @@
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
+<!DOCTYPE html>
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+    <script src="/resource/js/controllers.js"></script> <!-- Исправлена ошибка -->
     <title>Product Details</title>
 </head>
 <body>
-<section>
-    <div class="jumbotron">
-        <div class="container">
-            <h1>Product Details</h1>
-        </div>
-    </div>
-</section>
+
 <section class="container">
     <div class="thumbnail">
         <!-- Добавьте изображение продукта -->
@@ -37,8 +34,12 @@
             </p>
             <h4>${product.unitPrice} USD</h4>
             <p>
-                <a href="#" class="btn btn-warning btn-large">
+                <a href="#" class="btn btn-warning btn-large" ng-click="addToCart('${product.productId}')">
                     <span class="glyphicon glyphicon-shopping-cart"></span> Order Now
+                </a>
+                <!-- Добавлено ng-click для вызова функции viewCart -->
+                <a href="#" class="btn btn-default" ng-click="viewCart()">
+                    <span class="glyphicon glyphicon-hand-right"></span> View Cart
                 </a>
             </p>
         </div>

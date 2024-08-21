@@ -1,46 +1,65 @@
 package com.packt.webstore.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.packt.webstore.component.CustomPerformanceMonitorInterceptor;
-import com.packt.webstore.component.PerformanceMonitorInterceptor;
-import com.packt.webstore.domain.Product;
+import com.packt.webstore.interceptor.PerformanceMonitorInterceptor;
 import com.packt.webstore.interceptor.AuditingInterceptor;
+import com.packt.webstore.interceptor.PromoCodeInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.LocaleResolver;
-import org.springframework.web.servlet.View;
-import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
-import org.springframework.web.servlet.view.ContentNegotiatingViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
-import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
-import org.springframework.web.servlet.view.xml.MarshallingView;
+import org.springframework.web.servlet.view.tiles3.TilesConfigurer;
+import org.springframework.web.servlet.view.tiles3.TilesViewResolver;
+import org.springframework.webflow.config.FlowBuilderServicesBuilder;
+import org.springframework.webflow.config.FlowDefinitionRegistryBuilder;
+import org.springframework.webflow.config.FlowExecutorBuilder;
+import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
+import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
+import org.springframework.webflow.executor.FlowExecutor;
+import org.springframework.webflow.mvc.servlet.FlowHandlerAdapter;
+import org.springframework.webflow.mvc.servlet.FlowHandlerMapping;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 
 @Configuration
 @EnableWebMvc
 @ComponentScan(basePackages = "com.packt.webstore")
+@Import(WebFlowConfig.class)
 public class WebConfig implements WebMvcConfigurer {
+
+    @Bean
+    public PerformanceMonitorInterceptor performanceMonitorInterceptor() {
+        return new PerformanceMonitorInterceptor();
+    }
+
+    @Bean
+    public AuditingInterceptor auditingInterceptor() {
+        return new AuditingInterceptor();
+    }
+
+    @Bean
+    public PromoCodeInterceptor promoCodeInterceptor() {
+        return new PromoCodeInterceptor();
+    }
 
     @Bean
     public InternalResourceViewResolver viewResolver() {
         InternalResourceViewResolver resolver = new InternalResourceViewResolver();
         resolver.setPrefix("/WEB-INF/view/");
+//        resolver.setPrefix("/WEB-INF/flows/checkout/");
         resolver.setSuffix(".jsp");
         return resolver;
     }
@@ -68,30 +87,6 @@ public class WebConfig implements WebMvcConfigurer {
         return messageSource;
     }
 
-//    @Bean
-//    public CustomPerformanceMonitorInterceptor performanceMonitorInterceptor() {
-//        return new CustomPerformanceMonitorInterceptor();
-//    }
-//
-//    @Bean
-//    public LocaleChangeInterceptor localeChangeInterceptor() {
-//        LocaleChangeInterceptor interceptor = new LocaleChangeInterceptor();
-//        interceptor.setParamName("language");
-//        return interceptor;
-//    }
-
-//    @Override
-//    public void addInterceptors(InterceptorRegistry registry) {
-//        registry.addInterceptor((HandlerInterceptor) performanceMonitorInterceptor());
-//        registry.addInterceptor(localeChangeInterceptor());
-//    }
-
-
-    @Bean
-    public PerformanceMonitorInterceptor performanceMonitorInterceptor(){
-        return  new PerformanceMonitorInterceptor();
-    }
-
     @Bean
     public LocaleChangeInterceptor localeChangeInterceptor() {
         LocaleChangeInterceptor localeChangeInterceptor = new LocaleChangeInterceptor();
@@ -100,16 +95,47 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public AuditingInterceptor auditingInterceptor() {
-        return new AuditingInterceptor();
+    public LocalValidatorFactoryBean validator() {
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.setValidationMessageSource(messageSource());
+        return validator;
     }
+
+    @Override
+    public Validator getValidator() {
+        return validator();
+    }
+
+
+
+    @Bean
+    public TilesConfigurer tilesConfigurer() {
+        TilesConfigurer tilesConfigurer = new TilesConfigurer();
+        tilesConfigurer.setDefinitions(new String[] { "/WEB-INF/tiles/definitions/tile-definition.xml" });
+        tilesConfigurer.setCheckRefresh(true);
+        return tilesConfigurer;
+    }
+
+    @Bean
+    public TilesViewResolver tilesViewResolver() {
+        TilesViewResolver tilesViewResolver = new TilesViewResolver();
+        tilesViewResolver.setViewClass(org.springframework.web.servlet.view.tiles3.TilesView.class);
+        //tilesViewResolver.setOrder(-2); // Ensure TilesViewResolver has a higher precedence than default
+        return tilesViewResolver;
+    }
+
+
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(performanceMonitorInterceptor());
         registry.addInterceptor(localeChangeInterceptor());
         registry.addInterceptor(auditingInterceptor());
+        registry.addInterceptor(promoCodeInterceptor())
+                .addPathPatterns("/**");
     }
+}
+
 
 //    public ContentNegotiatingViewResolver contentNegotiatingViewResolver() {
 //        ContentNegotiatingViewResolver viewResolver = new ContentNegotiatingViewResolver();
@@ -134,4 +160,22 @@ public class WebConfig implements WebMvcConfigurer {
 //
 //        return new MarshallingView(marshaller);
 //    }
-}
+
+//    @Bean
+//    public CustomPerformanceMonitorInterceptor performanceMonitorInterceptor() {
+//        return new CustomPerformanceMonitorInterceptor();
+//    }
+//
+//    @Bean
+//    public LocaleChangeInterceptor localeChangeInterceptor() {
+//        LocaleChangeInterceptor interceptor = new LocaleChangeInterceptor();
+//        interceptor.setParamName("language");
+//        return interceptor;
+//    }
+
+//    @Override
+//    public void addInterceptors(InterceptorRegistry registry) {
+//        registry.addInterceptor((HandlerInterceptor) performanceMonitorInterceptor());
+//        registry.addInterceptor(localeChangeInterceptor());
+//    }
+

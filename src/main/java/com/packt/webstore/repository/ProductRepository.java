@@ -16,5 +16,6 @@ public interface ProductRepository {
 
     void addProduct(Product product);
 
+    void deleteById(String productId);
     List<Product> getProductsByManufacturer(String manufacturer);
 }

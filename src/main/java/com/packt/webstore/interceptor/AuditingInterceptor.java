@@ -12,13 +12,13 @@ public class AuditingInterceptor extends HandlerInterceptorAdapter {
     Logger logger = Logger.getLogger("auditLogger");
     private String user;
     private String productId;
-    public boolean preHandle(HttpServletRequest
-                                     request,HttpServletResponse arg1, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request,HttpServletResponse arg1, Object handler) throws Exception {
         if(request.getRequestURI().endsWith("products/add")
                 &&request.getMethod().equals("POST")){
             user = request.getRemoteUser();
             productId = request.getParameterValues("productId")[0];
         }
+        System.out.println("Audit log: " + request.getRequestURI());
         return true;
     }
     public void afterCompletion(HttpServletRequest request,HttpServletResponse response,

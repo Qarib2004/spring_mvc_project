@@ -4,6 +4,8 @@ import com.packt.webstore.domain.Product;
 import com.packt.webstore.exeption.ProductNotFoundException;
 import com.packt.webstore.repository.ProductRepository;
 import com.packt.webstore.service.ProductService;
+import com.packt.webstore.validator.ProductValidator;
+import com.packt.webstore.validator.UnitsInStockValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
@@ -16,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.io.File;
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -28,6 +31,11 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/products")
 public class ProductController {
+    @Autowired
+    private UnitsInStockValidator unitsInStockValidator;
+
+    @Autowired
+    private ProductValidator productValidator;
 
     @Autowired
     private ProductService productService;
@@ -60,14 +68,26 @@ public class ProductController {
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public String processAddNewProductForm(@ModelAttribute("newProduct") Product productToBeAdded,
                                            BindingResult result, HttpServletRequest request) {
+        // Проверка на наличие ошибок в валидации полей
         if (result.hasErrors()) {
             return "addProduct";
         }
 
+        // Проверка на наличие подавленных полей
         String[] suppressedFields = result.getSuppressedFields();
         if (suppressedFields.length > 0) {
             throw new RuntimeException("Attempting to bind disallowed fields: "
                     + StringUtils.arrayToCommaDelimitedString(suppressedFields));
+        }
+
+        // Проверка на существование продукта с таким же productId
+        try {
+            if (productService.getProductById(productToBeAdded.getProductId()) != null) {
+                result.rejectValue("productId", "error.product", "Product with this ID already exists.");
+                return "addProduct";
+            }
+        } catch (ProductNotFoundException e) {
+            // Если продукт не найден, продолжаем добавление
         }
 
         // Обработка загрузки изображения
@@ -82,9 +102,21 @@ public class ProductController {
             }
         }
 
+        // Добавление нового продукта
         productService.addProduct(productToBeAdded);
         return "redirect:/products";
     }
+
+//    @PostMapping("/products/delete/{id}")
+//    public String deleteProduct(@PathVariable("id") String productId) {
+//        productService.deleteProductById(productId);
+//        return "redirect:/products";
+//    }
+@RequestMapping(value = "/delete/{productId}", method = RequestMethod.GET)
+public String deleteProduct(@PathVariable("productId") String productId) {
+    productService.deleteProductById(productId);
+    return "redirect:/products";  // После удаления перенаправляем на список продуктов
+}
 
     @RequestMapping("/{category}")
     public String getProductsByCategory(Model model,
@@ -136,13 +168,25 @@ public class ProductController {
         return mav;
     }
 
-    @InitBinder
+    @RequestMapping("/invalidPromoCode")
+    public String invalidPromoCode() {
+        return "invalidPromoCode";
+    }
+
+
+
+        @InitBinder
     public void initialiseBinder(WebDataBinder binder) {
         DateFormat dateFormat = new SimpleDateFormat("MMM d, YYYY");
         CustomDateEditor orderDateEditor = new CustomDateEditor(dateFormat, true);
         binder.registerCustomEditor(Date.class, orderDateEditor);
         binder.setAllowedFields("productId", "name", "unitPrice", "description", "manufacturer", "category", "unitsInStock", "productImage");
+           // binder.setAllowedFields();
+            binder.setValidator(unitsInStockValidator);
+            binder.setValidator(productValidator);
+
     }
+
 }
 
 

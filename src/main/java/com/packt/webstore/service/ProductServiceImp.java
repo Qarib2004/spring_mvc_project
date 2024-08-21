@@ -37,6 +37,10 @@ public class ProductServiceImp implements ProductService{
         productRepository.addProduct(product);
     }
 
+    @Override
+    public void deleteProductById(String productId) {
+        productRepository.deleteById(productId);
+    }
 
     @Override
     public List<Product> getProductsByManufacturer(String manufacturer) {

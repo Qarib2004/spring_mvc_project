@@ -2,16 +2,28 @@ package com.packt.webstore.domain;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.packt.webstore.validator.ProductId;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 import org.springframework.web.multipart.MultipartFile;
 
+
+import javax.validation.constraints.Digits;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import java.math.BigDecimal;
 
 //@XmlRootElement(name = "product")
     public class Product {
+       @Pattern(regexp="P[0-9]+", message=" {Pattern.Product.productId.validation}")
+       @ProductId
         private String productId;
+        @NotNull(message="{NotNull.Product.name.validation}")
         private String name;
+        @Min(value=0, message="Min.Product.unitPrice.validation}")
+        @Digits(integer=8, fraction=2, message=" {Digits.Product.unitPrice.validation}")
+        @NotNull(message= "{NotNull.Product.unitPrice.validation}")
         private BigDecimal unitPrice;
         private String description;
         private String manufacturer;
